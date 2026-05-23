@@ -1,0 +1,11 @@
+{
+  "name": "kshot",
+  "author": "kriaiss",
+  "version": "1.0.0",
+  "description": "minimalistic screenshot utility",
+  "dependencies": [
+    "pyqt6",
+    "pyobjc-framework-cocoa"
+  ],
+  "settings": ["toggle saving", "select screenshots folder"]
+}
