@@ -9,7 +9,7 @@
     </pre>
 </div>
 <p align="center">
-    standard screenshot utility for ktools.
+    Custom screenshot utility for ktools.
 </p>
 <p align="center">
     <img src="https://img.shields.io/badge/python-3.12+-blue?style=flat-square" alt="Python">
@@ -18,55 +18,31 @@
 
 ⠀
 
-# what is this?
+## What is kshot?
 
-kshot is the standard screenshot utility for ktools. it wraps the native macOS screencapture utility into a managed background worker, allowing u to instantly capture regions of ur screen and pipe the result directly to ur clipboard or a designated local folder.
+`kshot` is a background worker that wraps the native macOS `screencapture` utility. It allows you to grab regions of your screen and instantly pushes them to your clipboard, completely bypassing the desktop clutter created by the default macOS screenshot tool.
 
-fun fact: every screenshot in my repos made with it
-
-### features
-
-* native capture: utilizes macOS system-level screencapture for perfect pixel data.
-* async processing: runs in a background QThread to prevent UI blocking during image processing.
-* smart clipboard: images are immediately available for paste.
-* disk persistence: configurable auto-save to local storage with automated file naming.
+### Core Features
+* **Native Capture**: Seamlessly integrates with the system-level macOS `screencapture` crosshair.
+* **Smart Clipboard**: Images are pushed directly to your clipboard so you can paste them into chats or docs immediately.
+* **Disk Persistence**: Optionally auto-saves timestamped `.png` files to local storage (`~/Pictures/kshots` by default).
 
 ⠀
 
-# how to use
+## How to Use (For Users)
 
-### 1. summoning the tool
+1. Download the `kshot` `.zip` archive from the Releases page.
+2. Open the **ktools Plugin Manager** from your menu bar and click **import plugins** to install it.
+3. Press `⌥⌘\`` (Option + Command + Backtick) anywhere in macOS.
+4. Your cursor will turn into the native macOS selection crosshair. Select the area you want to grab.
+5. The image is instantly copied to your clipboard.
 
-just hit
+### Configuring Settings
 
-```
-⌥⌘` (option + command + backtick)
-```
-
-global event monitors capture this shortcut anywhere in the OS.
-
-### 2. capture flow
-
-* once triggered, ur cursor turns into the native macOS selection crosshair.
-* define the area you want to grab.
-* kshot processes the resulting data in the background and hits ur system clipboard.
-* if disk saving is enabled, it writes a timestamped .png to ur configured path.
+`kshot` exposes two quick-actions directly in the `ktools` Plugin Manager UI:
+* **toggle saving**: Click this to enable or disable writing screenshots to disk. When disabled, images are *only* copied to the clipboard.
+* **select screenshots folder**: Click this to open a folder picker and change where the timestamped `.png` files are saved.
 
 ⠀
-
-# configuration
-
-the kshot.json dictates everything. u can set it up using buttons in ktools plugin manager.
-
-![kshot configuration preview](preview/kshot_configuration.png)
-
-* toogle saving.
-* select screenshots folder: opens a native system dialog to select the destination directory for screenshots.
-
-⠀
-
-### final thoughts
-
-im tired of this already...
 
 by kriaiss.
