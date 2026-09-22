@@ -5,47 +5,8 @@ import json
 import gc
 from PyQt6.QtGui import QAction, QImage
 from PyQt6.QtWidgets import QApplication, QFileDialog
-from PyQt6.QtCore import QTimer, QDateTime, Qt, QThread, pyqtSignal
+from PyQt6.QtCore import QTimer, QDateTime, Qt, QProcess, QMimeData, QByteArray
 from AppKit import NSEvent, NSKeyDownMask
-
-class CaptureWorker(QThread):
-    finished_signal = pyqtSignal(str)
-    error_signal = pyqtSignal(str)
-
-    def __init__(self):
-        super().__init__()
-        self.process = None
-
-    def run(self):
-        tmp_path = ""
-        try:
-            with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
-                tmp_path = tmp.name
-
-            self.process = subprocess.Popen(["screencapture", "-i", tmp_path])
-            self.process.wait()
-            
-            if self.process.returncode == 0 and os.path.exists(tmp_path) and os.path.getsize(tmp_path) > 0:
-                self.finished_signal.emit(tmp_path)
-            else:
-                if os.path.exists(tmp_path):
-                    os.remove(tmp_path)
-                self.error_signal.emit("capture failed or aborted")
-        except Exception as e:
-            if os.path.exists(tmp_path):
-                os.remove(tmp_path)
-            self.error_signal.emit(str(e))
-    
-    def stop(self):
-        if self.process:
-            try:
-                self.process.terminate()
-                self.process.wait(timeout=1)
-            except Exception:
-                self.process.kill()
-            self.process = None
-        self.quit()
-        self.wait()
 
 class Plugin:
     def __init__(self, ktools):
@@ -68,7 +29,7 @@ class Plugin:
 
     def update_theme(self):
         pass
-
+    
     def unload(self):
         try:
             if hasattr(self, 'global_monitor') and self.global_monitor:
@@ -80,21 +41,14 @@ class Plugin:
         except Exception: 
             pass
 
-        if self.worker:
-            try:
-                self.worker.finished_signal.disconnect()
-                self.worker.error_signal.disconnect()
-            except Exception:
-                pass
-            self.worker.stop()
-            self.worker.deleteLater()
-            self.worker = None
+        if hasattr(self, 'capture_process') and self.capture_process:
+            self.capture_process.kill()
+            self.capture_process = None
 
         try:
             self.action.triggered.disconnect()
         except Exception: 
             pass
-
         gc.collect()
 
     def _load_config(self):
@@ -131,23 +85,32 @@ class Plugin:
             return None
         return event
 
+    # multi-monitor crash fix
     def take_screenshot(self):
-        if self.worker and self.worker.isRunning():
+        if hasattr(self, 'capture_process') and self.capture_process and self.capture_process.state() == QProcess.ProcessState.Running:
             return
-            
-        if self.worker:
-            self.worker.deleteLater()
 
-        self.worker = CaptureWorker()
-        self.worker.finished_signal.connect(self.process_screenshot)
-        self.worker.error_signal.connect(lambda msg: self.ktools.notify(f"error: {msg}"))
-        self.worker.start()
+        self.tmp_path = os.path.join(tempfile.gettempdir(), f"kshot_{QDateTime.currentDateTime().toMSecsSinceEpoch()}.png")
+        
+        self.capture_process = QProcess()
+        self.capture_process.finished.connect(self._on_capture_finished)
+        self.capture_process.errorOccurred.connect(lambda err: self.ktools.notify(f"error: {err}"))
+
+        self.capture_process.start("screencapture", ["-i", self.tmp_path])
+
+    def _on_capture_finished(self, exitCode, exitStatus):
+        if exitCode == 0 and os.path.exists(self.tmp_path) and os.path.getsize(self.tmp_path) > 0:
+            self.process_screenshot(self.tmp_path)
+        else:
+            if os.path.exists(self.tmp_path):
+                os.remove(self.tmp_path)
+            self.ktools.notify("capture aborted")
 
     def process_screenshot(self, tmp_path):
         try:
-            # keep strong ref to QImage, py gc nukes it before mac clipboard can read it, crashing with SIGTRAP (gotta love this error)
             self.last_image = QImage(tmp_path)
             if not self.last_image.isNull():
+
                 QApplication.clipboard().setImage(self.last_image)
 
                 if self.config.get("enabled"):
